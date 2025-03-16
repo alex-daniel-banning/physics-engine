@@ -9,7 +9,8 @@ add_subdirectory(src/glad)
 
 add_executable(engine src/main.cpp)
 
-target_link_libraries(engine PUBLIC glad)
+# Had to build /usr/local/lib/libglfw.so
+target_link_libraries(engine PUBLIC glad glfw)
 
 # Make sure CMake knows about your include directory
 target_include_directories(engine PUBLIC
