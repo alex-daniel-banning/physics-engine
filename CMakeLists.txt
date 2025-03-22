@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_subdirectory(src/glad)
 
-add_executable(engine src/main.cpp)
+add_executable(engine src/main.cpp src/stb_image.cpp)
 
 # Had to build /usr/local/lib/libglfw.so
 target_link_libraries(engine PUBLIC glad glfw)
