@@ -3,7 +3,6 @@
 #include <Shader.hpp>
 #include <model/Mesh.hpp>
 #include <string>
-#include <vector>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -12,7 +11,7 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
 
 class Model {
     public:
-        Model(char *path) {
+        Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma) {
             loadModel(path);
         }
         void Draw(Shader &shader);
@@ -21,8 +20,9 @@ class Model {
         std::vector<Mesh> meshes;
         std::string directory;
         std::vector<Texture> textures_loaded;
+        bool gammaCorrection;
 
-        void loadModel(std::string path);
+        void loadModel(std::string const &path);
         void processNode(aiNode *node, const aiScene *scene);
         Mesh processMesh(aiMesh *mesh, const aiScene *scene);
         std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type,

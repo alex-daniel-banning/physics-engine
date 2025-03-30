@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <model/Vertex.hpp>
+#include <model/Model.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -174,6 +175,9 @@ int main() {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, scroll_callback);
+
+    std::string backpackPath = "/home/alex/code/physics-engine/resources/models/backpack/backpack.obj";
+    Model backpack = Model(backpackPath);
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -182,14 +186,14 @@ int main() {
         processInput(window);
 
         // rendering commands here
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        ourShader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        //ourShader.use();
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, texture1);
+        //glActiveTexture(GL_TEXTURE1);
+        //glBindTexture(GL_TEXTURE_2D, texture2);
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
@@ -206,16 +210,16 @@ int main() {
         int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-        glBindVertexArray(VAO);
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            ourShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        //glBindVertexArray(VAO);
+        //for (unsigned int i = 0; i < 10; i++)
+        //{
+        //    glm::mat4 model = glm::mat4(1.0f);
+        //    model = glm::translate(model, cubePositions[i]);
+        //    float angle = 20.0f * i;
+        //    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+        //    ourShader.setMat4("model", model);
+        //    glDrawArrays(GL_TRIANGLES, 0, 36);
+        //}
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
