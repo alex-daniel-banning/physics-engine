@@ -9,6 +9,7 @@
 #include <model/Vertex.hpp>
 #include <model/Model.hpp>
 #include <Shader.hpp>
+#include <ProjectRoot.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -51,6 +52,7 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -62,11 +64,11 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     glEnable(GL_DEPTH_TEST);
-    Shader ourShader("/home/alex/code/physics-engine/resources/shaders/shader.vert",
-            "/home/alex/code/physics-engine/resources/shaders/shader.frag");
 
-    std::string backpackPath = "/home/alex/code/physics-engine/resources/models/backpack/backpack.obj";
-    Model backpack = Model(backpackPath);
+    Shader ourShader(ProjectRoot::getPath("/resources/shaders/shader.vert"),
+                ProjectRoot::getPath("/resources/shaders/shader.frag"));
+
+    Model backpack = Model(ProjectRoot::getPath("/resources/models/backpack/backpack.obj"));
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -131,7 +133,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastX = xpos;
     lastY = ypos;
 
-    const float sensitivity = 0.1f;
+    const float sensitivity = 0.05f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
     yaw += xoffset;
