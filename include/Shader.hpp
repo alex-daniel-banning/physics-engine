@@ -118,6 +118,11 @@ class Shader
         {
             glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
         }
+
+        void setFloat4(const std::string &name, glm::vec4 &vec) const
+        {
+            glUniform4f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z, vec.w);
+        }
 };
 
 #endif

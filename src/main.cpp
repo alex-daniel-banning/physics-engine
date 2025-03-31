@@ -67,8 +67,14 @@ int main() {
 
     Shader ourShader(ProjectRoot::getPath("/resources/shaders/shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/shader.frag"));
+    Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
+                ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
+    glm::vec4 color = glm::vec4(0.8f, 0.0f, 0.0f, 1.0f);
+    basicShader.use();
+    basicShader.setFloat4("objectColor", color);
 
     Model backpack = Model(ProjectRoot::getPath("/resources/models/backpack/backpack.obj"));
+    Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -80,17 +86,17 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        ourShader.use();
+        basicShader.use();
         glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        basicShader.setMat4("projection", projection);
+        basicShader.setMat4("view", view);
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        ourShader.setMat4("model", model);
-        backpack.Draw(ourShader);
+        basicShader.setMat4("model", model);
+        sphere.Draw(ourShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
