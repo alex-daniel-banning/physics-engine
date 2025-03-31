@@ -69,12 +69,17 @@ int main() {
                 ProjectRoot::getPath("/resources/shaders/shader.frag"));
     Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
-    glm::vec4 color = glm::vec4(0.8f, 0.0f, 0.0f, 1.0f);
     basicShader.use();
-    basicShader.setFloat4("objectColor", color);
 
-    Model backpack = Model(ProjectRoot::getPath("/resources/models/backpack/backpack.obj"));
     Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
+    
+    /* Lighting stuff */
+    Model light = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
+    /******************/
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -92,11 +97,22 @@ int main() {
         basicShader.setMat4("projection", projection);
         basicShader.setMat4("view", view);
 
+        // todo, make a WorldObject class
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         basicShader.setMat4("model", model);
+        basicShader.setVec3("objectColor", sphereColor);
+        basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         sphere.Draw(ourShader);
+
+        glm::mat4 lightModel = glm::mat4(1.0f);
+        lightModel = glm::translate(lightModel, lightPos);
+        lightModel = glm::scale(lightModel, glm::vec3(0.2f));
+        basicShader.setMat4("model", lightModel);
+        basicShader.setVec3("objectColor", lightColor);
+        basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        light.Draw(ourShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -124,6 +140,10 @@ void processInput(GLFWwindow *window)
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        cameraPos += glm::vec3(0.0f, 1.0f, 0.0f) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        cameraPos -= glm::vec3(0.0f, 1.0f, 0.0f) * cameraSpeed;
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
