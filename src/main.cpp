@@ -31,7 +31,7 @@ float yaw = -90.0f;
 float pitch = 0.0f;
 bool firstMouse = true;
 double fov = 45.0f;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 7.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -64,12 +64,14 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     Shader ourShader(ProjectRoot::getPath("/resources/shaders/shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/shader.frag"));
     Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
-    basicShader.use();
+    Shader lightSourceShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
+                ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
 
     Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
     glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
@@ -104,15 +106,17 @@ int main() {
         basicShader.setMat4("model", model);
         basicShader.setVec3("objectColor", sphereColor);
         basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        sphere.Draw(ourShader);
+        basicShader.setVec3("lightPos", lightPos);
+        sphere.Draw(basicShader);
 
+        lightSourceShader.use();
+        lightSourceShader.setMat4("projection", projection);
+        lightSourceShader.setMat4("view", view);
         glm::mat4 lightModel = glm::mat4(1.0f);
         lightModel = glm::translate(lightModel, lightPos);
         lightModel = glm::scale(lightModel, glm::vec3(0.2f));
-        basicShader.setMat4("model", lightModel);
-        basicShader.setVec3("objectColor", lightColor);
-        basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        light.Draw(ourShader);
+        lightSourceShader.setMat4("model", lightModel);
+        light.Draw(lightSourceShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
