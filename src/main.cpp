@@ -68,21 +68,17 @@ int main() {
     glCullFace(GL_BACK);      // Culls (hides) back faces  
     glFrontFace(GL_CCW);      // Counterclockwise (CCW) faces are considered front-facing  
 
-    Shader ourShader(ProjectRoot::getPath("/resources/shaders/shader.vert"),
-                ProjectRoot::getPath("/resources/shaders/shader.frag"));
     Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
     Shader lightSourceShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
 
-    Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    Model sphere = Model(ProjectRoot::getPath("/resources/models/uv_sphere/uv_sphere.obj"));
     glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
     
-    /* Lighting stuff */
     Model light = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
-    /******************/
 
     while (!glfwWindowShouldClose(window))
     {
@@ -95,13 +91,12 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
+        // todo, make a WorldObject class
         basicShader.use();
         glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         basicShader.setMat4("projection", projection);
         basicShader.setMat4("view", view);
-
-        // todo, make a WorldObject class
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
