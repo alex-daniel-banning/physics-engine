@@ -64,7 +64,9 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);   // Enables face culling  
+    glCullFace(GL_BACK);      // Culls (hides) back faces  
+    glFrontFace(GL_CCW);      // Counterclockwise (CCW) faces are considered front-facing  
 
     Shader ourShader(ProjectRoot::getPath("/resources/shaders/shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/shader.frag"));
