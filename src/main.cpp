@@ -70,16 +70,13 @@ int main() {
 
     Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
-    Shader radiallySymmetricalSmoothShader(ProjectRoot::getPath("/resources/shaders/radially_symmetrical_smooth_shader.vert"),
-                ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
     Shader lightSourceShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
 
-    Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
-    Model sphere2 = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    Model smoothSphere = Model(ProjectRoot::getPath("/resources/models/smooth_sphere/smooth_sphere.obj"));
     glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
     
-    Model light = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    Model light = Model(ProjectRoot::getPath("/resources/models/smooth_sphere/smooth_sphere.obj"));
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
 
@@ -101,25 +98,13 @@ int main() {
         basicShader.setMat4("projection", projection);
         basicShader.setMat4("view", view);
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         basicShader.setMat4("model", model);
         basicShader.setVec3("objectColor", sphereColor);
         basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         basicShader.setVec3("lightPos", lightPos);
-        sphere.Draw(basicShader);
-
-        radiallySymmetricalSmoothShader.use();
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        radiallySymmetricalSmoothShader.setMat4("projection", projection);
-        radiallySymmetricalSmoothShader.setMat4("view", view);
-        radiallySymmetricalSmoothShader.setMat4("model", model);
-        radiallySymmetricalSmoothShader.setVec3("objectColor", sphereColor);
-        radiallySymmetricalSmoothShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        radiallySymmetricalSmoothShader.setVec3("lightPos", lightPos);
-        sphere2.Draw(radiallySymmetricalSmoothShader);
+        smoothSphere.Draw(basicShader);
 
         lightSourceShader.use();
         lightSourceShader.setMat4("projection", projection);
