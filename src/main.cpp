@@ -17,8 +17,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 1200;
 
 // timing
 float deltaTime = 0.0f;
@@ -41,7 +41,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -70,10 +70,13 @@ int main() {
 
     Shader basicShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
+    Shader radiallySymmetricalSmoothShader(ProjectRoot::getPath("/resources/shaders/radially_symmetrical_smooth_shader.vert"),
+                ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
     Shader lightSourceShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
 
-    Model sphere = Model(ProjectRoot::getPath("/resources/models/uv_sphere/uv_sphere.obj"));
+    Model sphere = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+    Model sphere2 = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
     glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
     
     Model light = Model(ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
@@ -98,13 +101,25 @@ int main() {
         basicShader.setMat4("projection", projection);
         basicShader.setMat4("view", view);
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         basicShader.setMat4("model", model);
         basicShader.setVec3("objectColor", sphereColor);
         basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         basicShader.setVec3("lightPos", lightPos);
         sphere.Draw(basicShader);
+
+        radiallySymmetricalSmoothShader.use();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+        radiallySymmetricalSmoothShader.setMat4("projection", projection);
+        radiallySymmetricalSmoothShader.setMat4("view", view);
+        radiallySymmetricalSmoothShader.setMat4("model", model);
+        radiallySymmetricalSmoothShader.setVec3("objectColor", sphereColor);
+        radiallySymmetricalSmoothShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        radiallySymmetricalSmoothShader.setVec3("lightPos", lightPos);
+        sphere2.Draw(radiallySymmetricalSmoothShader);
 
         lightSourceShader.use();
         lightSourceShader.setMat4("projection", projection);
@@ -132,7 +147,7 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    const float cameraSpeed = 4.0f * deltaTime;
+    const float cameraSpeed = 6.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
