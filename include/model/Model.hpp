@@ -11,6 +11,7 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
 
 class Model {
     public:
+        Model() {}
         Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma) {
             loadModel(path);
         }

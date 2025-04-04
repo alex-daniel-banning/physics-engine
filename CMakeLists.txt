@@ -11,7 +11,7 @@ add_subdirectory(src/glad)
 
 add_executable(engine
     src/main.cpp src/stb_image.cpp
-    src/model/Mesh.cpp src/model/Model.cpp)
+    src/model/Mesh.cpp src/model/Model.cpp src/model/WorldObject.cpp)
 
 # Make sure CMake knows about your include directory
 target_include_directories(engine PUBLIC

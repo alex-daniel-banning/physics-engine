@@ -10,6 +10,7 @@
 #include <model/Model.hpp>
 #include <Shader.hpp>
 #include <ProjectRoot.hpp>
+#include <model/WorldObject.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -73,12 +74,13 @@ int main() {
     Shader lightSourceShader(ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
                 ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
 
-    Model smoothSphere = Model(ProjectRoot::getPath("/resources/models/smooth_sphere/smooth_sphere.obj"));
     glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
     
     Model light = Model(ProjectRoot::getPath("/resources/models/smooth_sphere/smooth_sphere.obj"));
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
+
+    WorldObject worldObject(ProjectRoot::getPath("/resources/models/smooth_sphere/smooth_sphere.obj"));
 
     while (!glfwWindowShouldClose(window))
     {
@@ -92,19 +94,16 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
         // todo, make a WorldObject class
-        basicShader.use();
         glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+        basicShader.use();
         basicShader.setMat4("projection", projection);
         basicShader.setMat4("view", view);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        basicShader.setMat4("model", model);
         basicShader.setVec3("objectColor", sphereColor);
-        basicShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        basicShader.setVec3("lightColor", lightColor);
         basicShader.setVec3("lightPos", lightPos);
-        smoothSphere.Draw(basicShader);
+        worldObject.Draw(basicShader);
 
         lightSourceShader.use();
         lightSourceShader.setMat4("projection", projection);
