@@ -35,6 +35,9 @@ double fov = 45.0f;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 7.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+float nearPlane = 0.1f;
+float farPlane = 100.0f;
+glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, nearPlane, farPlane);
 
 int main() {
     glfwInit();
@@ -94,7 +97,6 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
         // todo, make a WorldObject class
-        glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         basicShader.use();
@@ -125,6 +127,9 @@ int main() {
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+    float aspectRatio = (float)width / (float)height;
+    projection = glm::perspective(glm::radians((float)fov), aspectRatio, nearPlane, farPlane);
+
 }
 
 void processInput(GLFWwindow *window)
