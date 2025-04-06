@@ -1,93 +1,69 @@
 #include <Camera.hpp>
 
-Camera::Camera() {}
-
-void Camera::updateScreenDimensions(const unsigned int width, const unsigned int height) {
-    m_projection = glm::perspective(glm::radians((float)m_fov), (float)width / (float)height, m_nearPlane, m_farPlane);
+Camera::Camera(const unsigned int scr_width, const unsigned int scr_height)
+    : m_screenWidth(scr_width), m_screenHeight(scr_height),
+      m_lastX(scr_width / 2.0f), m_lastY(scr_height / 2.0f), m_yaw(-90.0f),
+      m_pitch(0.0f), m_firstMouse(true), m_fov(45.0f), m_speed(6.0f),
+      m_sensitivity(0.05f), m_nearPlane(0.1f), m_farPlane(100.0f),
+      m_position(glm::vec3(0.0f, 0.0f, 7.0f)),
+      m_cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)),
+      m_cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)) {
+  m_projection = glm::perspective(glm::radians(m_fov),
+                                  (float)m_screenWidth / (float)m_screenHeight,
+                                  m_nearPlane, m_farPlane);
 }
 
-glm::mat4 Camera::getProjection() {
-    return m_projection;
+void Camera::updateScreenDimensions(const unsigned int width,
+                                    const unsigned int height) {
+  m_projection =
+      glm::perspective(glm::radians(m_fov), (float)width / (float)height,
+                       m_nearPlane, m_farPlane);
 }
 
-glm::mat4 Camera::getViewMatrix() {
-    return glm::lookAt(m_position, m_position + m_cameraFront, m_cameraUp);
+glm::mat4 Camera::getProjection() const { return m_projection; }
+
+glm::mat4 Camera::getViewMatrix() const {
+  return glm::lookAt(m_position, m_position + m_cameraFront, m_cameraUp);
+}
+
+void Camera::setPosition(const glm::vec3 position) { m_position = position; }
+
+glm::vec3 Camera::getPosition() const { return m_position; }
+
+float Camera::getSpeed() const { return m_speed; }
+
+float Camera::getFov() const { return m_fov; }
+
+void Camera::setFov(float fov) {
+  m_fov = fov;
+  m_projection = glm::perspective(glm::radians(m_fov),
+                                  (float)m_screenWidth / (float)m_screenHeight,
+                                  m_nearPlane, m_farPlane);
 }
 
 void Camera::setLastMousePos(double xpos, double ypos) {
-    m_lastX = xpos;
-    m_lastY = ypos;
+  m_lastX = xpos;
+  m_lastY = ypos;
 }
 
-bool Camera::isFirstMouse() {
-    return m_firstMouse;
-}
+float Camera::getLastX() const { return m_lastX; }
 
-void Camera::setFirstMouse(bool value) {
-    m_firstMouse = value;
-}
+float Camera::getLastY() const { return m_lastY; }
 
-float Camera::getYaw() {
-    return m_yaw;
-}
+bool Camera::isFirstMouse() const { return m_firstMouse; }
 
-void Camera::setYaw(float yaw) {
-    m_yaw = yaw;
-}
+void Camera::setFirstMouse(bool value) { m_firstMouse = value; }
 
-float Camera::getPitch() {
-    return m_pitch;
-}
+float Camera::getYaw() const { return m_yaw; }
 
-void Camera::setPitch(float pitch) {
-    m_pitch = pitch;
-}
+void Camera::setYaw(float yaw) { m_yaw = yaw; }
 
-float Camera::getFov() {
-    return m_fov;
-}
+float Camera::getPitch() const { return m_pitch; }
 
-void Camera::setFov(float fov) {
-    m_fov = fov;
-    m_projection = glm::perspective(glm::radians((float)m_fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, m_nearPlane, m_farPlane);
-}
+void Camera::setPitch(float pitch) { m_pitch = pitch; }
 
-unsigned int Camera::getScreenWidth() {
-    return SCR_WIDTH;
-}
+glm::vec3 Camera::getFront() const { return m_cameraFront; }
 
-unsigned int Camera::getScreenHeight() {
-    return SCR_HEIGHT;
-}
+void Camera::setFront(const glm::vec3 front) { m_cameraFront = front; }
 
-float Camera::getLastX() {
-    return m_lastX;
-}
-
-float Camera::getLastY() {
-    return m_lastY;
-}
-
-float Camera::getSpeed() {
-    return m_speed;
-}
-
-glm::vec3 Camera::getFront() {
-    return m_cameraFront;
-}
-
-void Camera::setFront(const glm::vec3 front) {
-    m_cameraFront = front;
-}
-
-glm::vec3 Camera::getUp() {
-    return m_cameraUp;
-}
-
-glm::vec3 Camera::getPosition() {
-    return m_position;
-}
-
-void Camera::setPosition(const glm::vec3 position) {
-    m_position = position;
-}
+glm::vec3 Camera::getUp() const { return m_cameraUp; }

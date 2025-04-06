@@ -18,11 +18,15 @@ void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-Camera camera = Camera();
+// settings
+unsigned int DEFAULT_SCREEN_WIDTH = 1600;
+unsigned int DEFAULT_SCREEN_HEIGHT = 1200;
 
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+Camera camera = Camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 int main() {
     glfwInit();
@@ -30,7 +34,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(camera.getScreenWidth(), camera.getScreenHeight(), "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
