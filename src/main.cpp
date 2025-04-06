@@ -1,16 +1,20 @@
-#include <iostream>
 #include <cmath>
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include <iostream>
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
 #include <stb_image.h>
-#include <glm/glm.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "model/Model.hpp"
+#include <glm/glm.hpp>
+
+#include "Camera.hpp"
 #include "Shader.hpp"
 #include "ProjectRoot.hpp"
+#include "model/Model.hpp"
 #include "model/WorldObject.hpp"
-#include "Camera.hpp"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
