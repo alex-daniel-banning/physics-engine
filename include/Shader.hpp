@@ -14,7 +14,7 @@ class Shader
     public:
         unsigned int ID;
 
-        Shader(const char* vertexPath, const char* fragmentPath)
+        Shader(const std::string vertexPath, const std::string fragmentPath)
         {
             // 1. retrieve the vertex/fragment source code from filePath
             std::string vertexCode;
@@ -27,8 +27,8 @@ class Shader
             try
             {
                 // open files
-                vShaderFile.open(vertexPath);
-                fShaderFile.open(fragmentPath);
+                vShaderFile.open(vertexPath.c_str());
+                fShaderFile.open(fragmentPath.c_str());
                 std::stringstream vShaderStream, fShaderStream;
                 // read file's buffer contents into streams
                 vShaderStream << vShaderFile.rdbuf();
@@ -114,9 +114,19 @@ class Shader
             glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
         }
 
-        void setMat4(const std::string &name, glm::mat4 &mat) const
+        void setMat4(const std::string &name, const glm::mat4 &mat) const
         {
             glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        }
+
+        void setVec3(const std::string &name, glm::vec3 &vec) const
+        {
+            glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
+        }
+
+        void setVec3(const std::string &name, float value1, float value2, float value3) const
+        {
+            glUniform3f(glGetUniformLocation(ID, name.c_str()), value1, value2, value3);
         }
 };
 
