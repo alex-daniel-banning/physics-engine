@@ -11,33 +11,18 @@
 #include <Shader.hpp>
 #include <ProjectRoot.hpp>
 #include <model/WorldObject.hpp>
+#include <Camera.hpp>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-// settings
-const unsigned int SCR_WIDTH = 1600;
-const unsigned int SCR_HEIGHT = 1200;
+Camera camera = Camera();
 
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
-// camera
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-float yaw = -90.0f;
-float pitch = 0.0f;
-bool firstMouse = true;
-double fov = 45.0f;
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 7.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-float nearPlane = 0.1f;
-float farPlane = 100.0f;
-glm::mat4 projection = glm::perspective(glm::radians((float)fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, nearPlane, farPlane);
 
 int main() {
     glfwInit();
@@ -45,7 +30,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(camera.getScreenWidth(), camera.getScreenHeight(), "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -96,20 +81,17 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-        // todo, make a WorldObject class
-        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
         basicShader.use();
-        basicShader.setMat4("projection", projection);
-        basicShader.setMat4("view", view);
+        basicShader.setMat4("projection", camera.getProjection());
+        basicShader.setMat4("view", camera.getViewMatrix());
         basicShader.setVec3("objectColor", sphereColor);
         basicShader.setVec3("lightColor", lightColor);
         basicShader.setVec3("lightPos", lightPos);
         worldObject.Draw(basicShader);
 
         lightSourceShader.use();
-        lightSourceShader.setMat4("projection", projection);
-        lightSourceShader.setMat4("view", view);
+        lightSourceShader.setMat4("projection", camera.getProjection());
+        lightSourceShader.setMat4("view", camera.getViewMatrix());
         glm::mat4 lightModel = glm::mat4(1.0f);
         lightModel = glm::translate(lightModel, lightPos);
         lightModel = glm::scale(lightModel, glm::vec3(0.2f));
@@ -127,8 +109,7 @@ int main() {
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
-    float aspectRatio = (float)width / (float)height;
-    projection = glm::perspective(glm::radians((float)fov), aspectRatio, nearPlane, farPlane);
+    camera.updateScreenDimensions(width, height);
 
 }
 
@@ -136,57 +117,61 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    const float cameraSpeed = 6.0f * deltaTime;
+    const float cameraSpeed = camera.getSpeed() * deltaTime;
+    glm::vec3 moveDirection(0.0f);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
+        moveDirection += camera.getFront();
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
+        moveDirection -= camera.getFront();
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        moveDirection -= glm::normalize(glm::cross(camera.getFront(), camera.getUp()));
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        moveDirection += glm::normalize(glm::cross(camera.getFront(), camera.getUp()));
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        cameraPos += glm::vec3(0.0f, 1.0f, 0.0f) * cameraSpeed;
+        moveDirection += glm::vec3(0.0f, 1.0f, 0.0f);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        cameraPos -= glm::vec3(0.0f, 1.0f, 0.0f) * cameraSpeed;
+        moveDirection -= glm::vec3(0.0f, 1.0f, 0.0f);
+
+    if (glm::length(moveDirection) != 0.0f) {
+        moveDirection = glm::normalize(moveDirection);
+    }
+    camera.setPosition(camera.getPosition() + (moveDirection * cameraSpeed));
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    if (firstMouse)
+    if (camera.isFirstMouse())
     {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
+        camera.setLastMousePos(xpos, ypos);
+        camera.setFirstMouse(false);
     }
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
+    float xoffset = xpos - camera.getLastX();
+    float yoffset = camera.getLastY() - ypos;
+    camera.setLastMousePos(xpos, ypos);
 
     const float sensitivity = 0.05f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
-    yaw += xoffset;
-    pitch += yoffset;
+    camera.setYaw(camera.getYaw() + xoffset);
+    camera.setPitch(camera.getPitch() + yoffset);
     
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
+    if (camera.getPitch() > 89.0f)
+        camera.setPitch(89.0f);
+    if (camera.getPitch() < -89.0f)
+        camera.setPitch(-89.0f);
 
     glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(direction);
+    direction.x = cos(glm::radians(camera.getYaw())) * cos(glm::radians(camera.getPitch()));
+    direction.y = sin(glm::radians(camera.getPitch()));
+    direction.z = sin(glm::radians(camera.getYaw())) * cos(glm::radians(camera.getPitch()));
+    camera.setFront(glm::normalize(direction));
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    fov -= (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f;
+    camera.setFov(camera.getFov() - (float)yoffset);
+    if (camera.getFov() < 1.0f)
+        camera.setFov(1.0f);
+    if (camera.getFov() > 45.0f)
+        camera.setFov(45.0f);
 }

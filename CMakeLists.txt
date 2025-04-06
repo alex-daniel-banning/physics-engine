@@ -10,7 +10,7 @@ add_compile_definitions(PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 add_subdirectory(src/glad)
 
 add_executable(engine
-    src/main.cpp src/stb_image.cpp
+    src/main.cpp src/stb_image.cpp src/Camera.cpp
     src/model/Mesh.cpp src/model/Model.cpp src/model/WorldObject.cpp)
 
 # Make sure CMake knows about your include directory
