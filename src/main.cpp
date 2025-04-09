@@ -81,6 +81,11 @@ int main() {
   glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
   worldObject = WorldObject(ProjectRoot::getPath(
       "/resources/models/smooth_sphere/smooth_sphere.obj"));
+  WorldObject plane =
+      WorldObject(ProjectRoot::getPath("/resources/models/plane/plane.obj"));
+  plane.setPosition(glm::vec3(0.0f, -2.0f, 0.0f));
+  plane.setScale(glm::vec3(10.0f));
+  glm::vec3 planeColor = glm::vec3(0.0f, 0.1f, 0.2f);
   camera.lookAt(worldObject.getPosition());
 
   while (!glfwWindowShouldClose(window)) {
@@ -100,6 +105,9 @@ int main() {
     basicShader.setVec3("lightColor", lightColor);
     basicShader.setVec3("lightPos", lightPos);
     worldObject.Draw(basicShader);
+
+    basicShader.setVec3("objectColor", planeColor);
+    plane.Draw(basicShader);
 
     lightSourceShader.use();
     lightSourceShader.setMat4("projection", camera.getProjection());
