@@ -30,6 +30,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 Camera camera = Camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
+WorldObject worldObject;
 
 int main() {
   glfwInit();
@@ -78,9 +79,9 @@ int main() {
       "/resources/models/smooth_sphere/smooth_sphere.obj"));
   glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
   glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
-
-  WorldObject worldObject(ProjectRoot::getPath(
+  worldObject = WorldObject(ProjectRoot::getPath(
       "/resources/models/smooth_sphere/smooth_sphere.obj"));
+  camera.lookAt(worldObject.getPosition());
 
   while (!glfwWindowShouldClose(window)) {
     float currentFrame = glfwGetTime();
@@ -146,6 +147,9 @@ void processInput(GLFWwindow *window) {
     moveDirection = glm::normalize(moveDirection);
   }
   camera.setPosition(camera.getPosition() + (moveDirection * cameraSpeed));
+
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    camera.lookAt(worldObject.getPosition());
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {

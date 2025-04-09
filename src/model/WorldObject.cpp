@@ -1,6 +1,7 @@
 #include "model/WorldObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
+WorldObject::WorldObject() {}
 WorldObject::WorldObject(std::string const &path) { m_model = Model(path); }
 
 // todo, consider passing shader as const
@@ -14,4 +15,10 @@ void WorldObject::Draw(Shader &shader) {
   modelTransform = glm::scale(modelTransform, m_scale);
   shader.setMat4("model", modelTransform);
   this->m_model.Draw(shader);
+}
+
+glm::vec3 WorldObject::getPosition() const { return m_position; }
+
+void WorldObject::setPosition(const glm::vec3 position) {
+  m_position = position;
 }
