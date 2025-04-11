@@ -5,7 +5,7 @@ Camera::Camera(const unsigned int scr_width, const unsigned int scr_height)
       m_lastX(scr_width / 2.0f), m_lastY(scr_height / 2.0f), m_yaw(-90.0f),
       m_pitch(0.0f), m_firstMouse(true), m_fov(45.0f), m_speed(6.0f),
       m_sensitivity(0.05f), m_nearPlane(0.1f), m_farPlane(100.0f),
-      m_position(glm::vec3(-1.0f, -1.0f, 7.0f)),
+      m_position(glm::vec3(1.0f, 1.0f, 3.0f)),
       m_front(glm::vec3(0.0f, 0.0f, -1.0f)), m_up(glm::vec3(0.0f, 1.0f, 0.0f)) {
   m_projection = glm::perspective(glm::radians(m_fov),
                                   (float)m_screenWidth / (float)m_screenHeight,

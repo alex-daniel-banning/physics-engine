@@ -21,6 +21,9 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(char const *path);
+void renderQuad();
+void renderScene(const Shader &shader);
+void renderCube();
 
 // settings
 unsigned int DEFAULT_SCREEN_WIDTH = 1600;
@@ -32,6 +35,9 @@ float lastFrame = 0.0f;
 
 Camera camera = Camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 WorldObject worldObject;
+
+// meshes
+unsigned int planeVAO;
 
 int main() {
   glfwInit();
@@ -67,48 +73,62 @@ int main() {
   glFrontFace(
       GL_CCW); // Counterclockwise (CCW) faces are considered front-facing
 
-  unsigned int woodTexture =
-      loadTexture(ProjectRoot::getPath("/resources/container.jpg").c_str());
-  Shader basicShader(
-      ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
-      ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
   Shader lightSourceShader(
       ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
       ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
   Shader simpleDepthShader(
       ProjectRoot::getPath("/resources/shaders/simple_depth_shader.vert"),
       ProjectRoot::getPath("/resources/shaders/simple_depth_shader.frag"));
+  Shader debugDepthQuad(
+      ProjectRoot::getPath("/resources/shaders/debug_depth_quad.vert"),
+      ProjectRoot::getPath("/resources/shaders/debug_depth_quad.frag"));
+  Shader shader(ProjectRoot::getPath("/resources/shaders/shadows.vert"),
+                ProjectRoot::getPath("/resources/shaders/shadows.frag"));
 
-  glm::vec3 sphereColor = glm::vec3(0.8f, 0.0f, 0.0f);
+  float planeVertices[] = {
+      // positions            // normals         // texcoords
+      -25.0f, -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
+      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
 
-  Model light = Model(ProjectRoot::getPath(
-      "/resources/models/smooth_sphere/smooth_sphere.obj"));
-  glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-  glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 1.0f);
-  worldObject = WorldObject(ProjectRoot::getPath(
-      "/resources/models/smooth_sphere/smooth_sphere.obj"));
-  WorldObject plane =
-      WorldObject(ProjectRoot::getPath("/resources/models/plane/plane.obj"));
-  plane.setPosition(glm::vec3(0.0f, -2.0f, 0.0f));
-  plane.setScale(glm::vec3(100.0f));
-  glm::vec3 planeColor = glm::vec3(0.0f, 0.1f, 0.1f);
-  camera.lookAt(worldObject.getPosition());
+      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+      25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
+  // plane VAO
+  unsigned int planeVBO;
+  glGenVertexArrays(1, &planeVAO);
+  glGenBuffers(1, &planeVBO);
+  glBindVertexArray(planeVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices,
+               GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
+  glBindVertexArray(0);
 
-  /* Shadow stuff */
-  unsigned int depthMapFBO;
-  glGenFramebuffers(1, &depthMapFBO);
+  unsigned int woodTexture =
+      loadTexture(ProjectRoot::getPath("/resources/wood.png").c_str());
 
   const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
+  unsigned int depthMapFBO;
+  glGenFramebuffers(1, &depthMapFBO);
+  // create depth texture
   unsigned int depthMap;
   glGenTextures(1, &depthMap);
   glBindTexture(GL_TEXTURE_2D, depthMap);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH,
                SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
+  // attach depth texture as FBO's depth buffer
   glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
                          depthMap, 0);
@@ -116,78 +136,71 @@ int main() {
   glReadBuffer(GL_NONE);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  shader.use();
+  shader.setInt("diffuseTexture", 0);
+  shader.setInt("shadowMap", 1);
+  debugDepthQuad.use();
+  debugDepthQuad.setInt("depthMap", 0);
+
+  glm::vec3 lightPos = glm::vec3(-2.0f, 4.0f, -1.0f);
+
+  bool firstErr = false;
   while (!glfwWindowShouldClose(window)) {
+    /*** per-frame time logic ***/
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+
+    /*** input ***/
     processInput(window);
 
-    /*
-    // 1. first render to depth map
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    ConfigureShaderAndMatrices();
-    RenderScene();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // 2. then render scene as normal with shadow mapping (using depth map)
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    // rendering commands here
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    ConfigureShaderAndMatrices();
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    RenderScene();
-    */
 
-    /*
+    glm::mat4 lightProjection, lightView;
+    glm::mat4 lightSpaceMatrix;
     float near_plane = 1.0f, far_plane = 7.5f;
-    glm::mat4 lightProjection =
+    lightProjection =
         glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    glm::mat4 lightView =
+    lightView =
         glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+    lightSpaceMatrix = lightProjection * lightView;
+    // render scene from light's pov
     simpleDepthShader.use();
     simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
-    worldObject.Draw(simpleDepthShader);
-    plane.Draw(simpleDepthShader);
-    /* End shadow stuff */
-
-    // rendering commands here
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    basicShader.use();
-    basicShader.setMat4("projection", camera.getProjection());
-    basicShader.setMat4("view", camera.getViewMatrix());
-    basicShader.setVec3("objectColor", sphereColor);
-    basicShader.setVec3("lightColor", lightColor);
-    basicShader.setVec3("lightPos", lightPos);
-    basicShader.setBool("useTexture", false);
-    worldObject.Draw(basicShader);
-
-    basicShader.setVec3("objectColor", planeColor);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, woodTexture);
-    basicShader.setInt("texture_diffuse1", 0);
-    basicShader.setBool("useTexture", true);
-    plane.Draw(basicShader);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-    //  GLenum err;
-    //  while ((err = glGetError()) != GL_NO_ERROR) {
-    //    std::cout << "OpenGL error: " << err << std::endl;
-    //  }
+    renderScene(simpleDepthShader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    /* End shadow stuff */
 
-    lightSourceShader.use();
-    lightSourceShader.setMat4("projection", camera.getProjection());
-    lightSourceShader.setMat4("view", camera.getViewMatrix());
-    glm::mat4 lightModel = glm::mat4(1.0f);
-    lightModel = glm::translate(lightModel, lightPos);
-    lightModel = glm::scale(lightModel, glm::vec3(0.2f));
-    lightSourceShader.setMat4("model", lightModel);
-    light.Draw(lightSourceShader);
+    // reset viewport
+    glViewport(0, 0, DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 2. render scene as normal using the generated depth/shadow map
+    shader.use();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.getFov()),
+                                            (float)DEFAULT_SCREEN_WIDTH /
+                                                (float)DEFAULT_SCREEN_HEIGHT,
+                                            0.1f, 100.0f);
+    glm::mat4 view = camera.getViewMatrix();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    // set light uniforms
+    shader.setVec3("viewPos", camera.getPosition());
+    shader.setVec3("lightPos", lightPos);
+    shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, woodTexture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    renderScene(shader);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -208,9 +221,9 @@ void processInput(GLFWwindow *window) {
   const float cameraSpeed = camera.getSpeed() * deltaTime;
   glm::vec3 moveDirection(0.0f);
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    moveDirection += camera.getFront();
+    moveDirection += camera.getFront() * glm::vec3(1, 0, 1);
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    moveDirection -= camera.getFront();
+    moveDirection -= camera.getFront() * glm::vec3(1, 0, 1);
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     moveDirection -=
         glm::normalize(glm::cross(camera.getFront(), camera.getUp()));
@@ -240,7 +253,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   float yoffset = camera.getLastY() - ypos;
   camera.setLastMousePos(xpos, ypos);
 
-  const float sensitivity = 0.03f;
+  const float sensitivity = 0.04f;
   xoffset *= sensitivity;
   yoffset *= sensitivity;
   camera.setYaw(camera.getYaw() + xoffset);
@@ -302,4 +315,134 @@ unsigned int loadTexture(char const *path) {
     stbi_image_free(data);
   }
   return textureID;
+}
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad() {
+  if (quadVAO == 0) {
+    float quadVertices[] = {
+        // positions        // texture Coords
+        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    // setup plane VAO
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices,
+                 GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+  }
+  glBindVertexArray(quadVAO);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glBindVertexArray(0);
+}
+
+void renderScene(const Shader &shader) {
+  // floor
+  glm::mat4 model = glm::mat4(1.0f);
+  shader.setMat4("model", model);
+  glBindVertexArray(planeVAO);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  // cubes
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
+  model = glm::scale(model, glm::vec3(0.5f));
+  shader.setMat4("model", model);
+  renderCube();
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
+  model = glm::scale(model, glm::vec3(0.5f));
+  shader.setMat4("model", model);
+  renderCube();
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
+  model = glm::rotate(model, glm::radians(60.0f),
+                      glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+  model = glm::scale(model, glm::vec3(0.25));
+  shader.setMat4("model", model);
+  renderCube();
+}
+
+// renderCube() renders a 1x1 3D cube in NDC.
+// -------------------------------------------------
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube() {
+  // initialize (if necessary)
+  if (cubeVAO == 0) {
+    float vertices[] = {
+        // back face
+        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,   // top-right
+        1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,  // bottom-right
+        1.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,   // top-right
+        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,  // top-left
+        // front face
+        -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-left
+        1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,  // bottom-right
+        1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,   // top-right
+        1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,   // top-right
+        -1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,  // top-left
+        -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-left
+        // left face
+        -1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,   // top-right
+        -1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  // top-left
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+        -1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,  // bottom-right
+        -1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,   // top-right
+                                                            // right face
+        1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,     // top-left
+        1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,   // bottom-right
+        1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,    // top-right
+        1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,   // bottom-right
+        1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,     // top-left
+        1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,    // bottom-left
+        // bottom face
+        -1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, // top-right
+        1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,  // top-left
+        1.0f, -1.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,   // bottom-left
+        1.0f, -1.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,   // bottom-left
+        -1.0f, -1.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,  // bottom-right
+        -1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, // top-right
+        // top face
+        -1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top-left
+        1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // bottom-right
+        1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,  // top-right
+        1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // bottom-right
+        -1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top-left
+        -1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f   // bottom-left
+    };
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    // fill buffer
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // link vertex attributes
+    glBindVertexArray(cubeVAO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                          (void *)(6 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
+  // render Cube
+  glBindVertexArray(cubeVAO);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
+  glBindVertexArray(0);
 }

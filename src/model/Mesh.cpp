@@ -10,6 +10,16 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
   setupMesh();
 }
 
+void Mesh::Draw() {
+  // draw mesh
+  glBindVertexArray(VAO);
+  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+  glBindVertexArray(0);
+
+  // always good practice to set everything back to defaults once configured
+  glActiveTexture(GL_TEXTURE0);
+}
+
 void Mesh::Draw(Shader &shader) {
   unsigned int diffuseNr = 1;
   unsigned int specularNr = 1;

@@ -18,6 +18,7 @@ public:
   Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma) {
     loadModel(path);
   }
+  void Draw();
   void Draw(Shader &shader);
 
 private:

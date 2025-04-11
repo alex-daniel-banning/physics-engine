@@ -8,6 +8,7 @@ class WorldObject {
 public:
   WorldObject();
   WorldObject(std::string const &path);
+  void Draw();
   void Draw(Shader &shader);
   glm::vec3 getPosition() const;
   void setPosition(const glm::vec3 position);

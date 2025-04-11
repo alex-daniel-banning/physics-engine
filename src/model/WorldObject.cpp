@@ -4,6 +4,8 @@
 WorldObject::WorldObject() {}
 WorldObject::WorldObject(std::string const &path) { m_model = Model(path); }
 
+void WorldObject::Draw() { this->m_model.Draw(); }
+
 // todo, consider passing shader as const
 // Need to set the projection/view matrices and uniforms in the shader before
 // passing.
