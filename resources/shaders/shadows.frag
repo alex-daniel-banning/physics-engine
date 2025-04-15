@@ -13,6 +13,8 @@ uniform sampler2D shadowMap;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
+uniform vec3 color;
+uniform bool useTexture;
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -47,7 +49,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {           
-    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
+    vec3 color = useTexture ? texture(diffuseTexture, fs_in.TexCoords).rgb : color;
     vec3 normal = normalize(fs_in.Normal);
     vec3 lightColor = vec3(0.3);
     // ambient

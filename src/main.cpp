@@ -39,6 +39,13 @@ WorldObject worldObject;
 // meshes
 unsigned int planeVAO;
 
+/* todo list
+ * Add hitboxes to world objects
+ *  - spheres
+ *  - rectangles
+ * Render objects with solid colors
+ *  - Shader should use bool uniform 'useTexture'
+ */
 int main() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -84,6 +91,9 @@ int main() {
       ProjectRoot::getPath("/resources/shaders/debug_depth_quad.frag"));
   Shader shader(ProjectRoot::getPath("/resources/shaders/shadows.vert"),
                 ProjectRoot::getPath("/resources/shaders/shadows.frag"));
+  Shader basicShader(
+      ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
+      ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
 
   float planeVertices[] = {
       // positions            // normals         // texcoords
@@ -139,6 +149,7 @@ int main() {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   shader.use();
+  shader.setBool("useTexture", true);
   shader.setInt("diffuseTexture", 0);
   shader.setInt("shadowMap", 1);
   debugDepthQuad.use();
@@ -192,6 +203,7 @@ int main() {
 
     // 2. render scene as normal using the generated depth/shadow map
     shader.use();
+    shader.setBool("useTexture", true);
     glm::mat4 projection = glm::perspective(glm::radians(camera.getFov()),
                                             (float)DEFAULT_SCREEN_WIDTH /
                                                 (float)DEFAULT_SCREEN_HEIGHT,
@@ -208,7 +220,18 @@ int main() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     renderScene(shader);
-    sphere.Draw(shader);
+    // shader.setBool("useTexture", false);
+    // shader.setVec3("color", glm::vec3(0.5f, 0.0f, 0.0f));
+    basicShader.use();
+    basicShader.setMat4("projection", projection);
+    basicShader.setMat4("view", view);
+    basicShader.setVec3("lightPos", lightPos);
+    basicShader.setVec3("lightColor", glm::vec3(1.0f));
+    basicShader.setBool("useTexture", false);
+    basicShader.setVec3("color", glm::vec3(0.5f, 0.0f, 0.0f));
+    basicShader.setInt("diffuse_texture1",
+                       0); // this might need to be set for shader to work
+    sphere.Draw(basicShader);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

@@ -15,7 +15,7 @@ void main()
 {
     // Only multiply by model, because this is for lighting, which happens in world space
     FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = aNormal;
+    Normal = mat3(transpose(inverse(model))) * aNormal;
     //TexCoords = aTexCoords;
     TexCoords = vec2(aTexCoords.x, aTexCoords.y);
 
