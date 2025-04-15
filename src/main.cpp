@@ -115,7 +115,7 @@ int main() {
   unsigned int woodTexture =
       loadTexture(ProjectRoot::getPath("/resources/wood.png").c_str());
 
-  const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+  const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
   unsigned int depthMapFBO;
   glGenFramebuffers(1, &depthMapFBO);
   // create depth texture
@@ -144,7 +144,11 @@ int main() {
   debugDepthQuad.use();
   debugDepthQuad.setInt("depthMap", 0);
 
-  glm::vec3 lightPos = glm::vec3(-2.0f, 4.0f, -1.0f);
+  WorldObject sphere(
+      ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+  sphere.setPosition(glm::vec3(0.0f, 2.5f, -4.0f));
+
+  glm::vec3 lightPos = glm::vec3(-3.0f, 5.0f, -1.0f);
 
   bool firstErr = false;
   while (!glfwWindowShouldClose(window)) {
@@ -177,9 +181,8 @@ int main() {
     glClear(GL_DEPTH_BUFFER_BIT);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, woodTexture);
-    // glCullFace(GL_FRONT);
     renderScene(simpleDepthShader);
-    // glCullFace(GL_BACK);
+    sphere.Draw(simpleDepthShader);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     /* End shadow stuff */
 
@@ -205,6 +208,7 @@ int main() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     renderScene(shader);
+    sphere.Draw(shader);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -361,11 +365,18 @@ void renderScene(const Shader &shader) {
   model = glm::scale(model, glm::vec3(0.5f));
   shader.setMat4("model", model);
   renderCube();
+
   model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
+  model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
   model = glm::scale(model, glm::vec3(0.5f));
   shader.setMat4("model", model);
   renderCube();
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(-0.5f, 1.0f, -0.5f));
+  model = glm::scale(model, glm::vec3(0.5f));
+  shader.setMat4("model", model);
+  renderCube();
+
   model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
   model = glm::rotate(model, glm::radians(60.0f),
