@@ -24,6 +24,13 @@ glm::vec3 WorldObject::getPosition() const { return m_position; }
 void WorldObject::setPosition(const glm::vec3 position) {
   m_position = position;
 }
+
+glm::vec3 WorldObject::getVelocity() const { return m_velocity; }
+
+void WorldObject::setVelocity(const glm::vec3 velocity) {
+  m_velocity = velocity;
+}
+
 glm::vec3 WorldObject::getScale() const { return m_scale; }
 
 void WorldObject::setScale(const glm::vec3 scale) { m_scale = scale; }

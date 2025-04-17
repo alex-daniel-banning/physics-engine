@@ -22,7 +22,7 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(char const *path);
 void renderQuad();
-void renderScene(const Shader &shader);
+void renderFloor(const Shader &shader);
 void renderCube();
 
 // settings
@@ -39,7 +39,15 @@ WorldObject worldObject;
 // meshes
 unsigned int planeVAO;
 
+float cameraMinX = -20.0f;
+float cameraMaxX = 20.0f;
+float cameraMinY = 0.0f;
+float cameraMaxY = 20.0f;
+float cameraMinZ = -20.0f;
+float cameraMaxZ = 20.0f;
+
 /* todo list
+ * Add velocity to world objects
  * Add hitboxes to world objects
  *  - spheres
  *  - rectangles
@@ -97,13 +105,13 @@ int main() {
 
   float planeVertices[] = {
       // positions            // normals         // texcoords
-      -25.0f, -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
-      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+      -25.0f, cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
+      25.0f,  cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+      -25.0f, cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
 
-      -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
-      25.0f,  -0.5f, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      25.0f,  -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
+      -25.0f, cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+      25.0f,  cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+      25.0f,  cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
   // plane VAO
   unsigned int planeVBO;
   glGenVertexArrays(1, &planeVAO);
@@ -155,11 +163,14 @@ int main() {
   debugDepthQuad.use();
   debugDepthQuad.setInt("depthMap", 0);
 
-  WorldObject sphere(
-      ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
-  sphere.setPosition(glm::vec3(0.0f, 2.5f, -4.0f));
+  WorldObject sphere(ProjectRoot::getPath(
+      "/resources/models/smooth_sphere/smooth_sphere.obj"));
+  sphere.setPosition(glm::vec3(0.0f, 2.5f, 0.0f));
+  sphere.setVelocity(glm::vec3(0.0f, 5.0f, 0.0f));
 
   glm::vec3 lightPos = glm::vec3(-3.0f, 5.0f, -1.0f);
+  WorldObject lightOrb(
+      ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
 
   bool firstErr = false;
   while (!glfwWindowShouldClose(window)) {
@@ -168,20 +179,50 @@ int main() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    /*** input ***/
+    /*** Input ***/
     processInput(window);
 
-    // rendering commands here
+    /*** World tick ***/
+    glm::vec3 newPosition =
+        sphere.getPosition() + (deltaTime * sphere.getVelocity());
+    if (newPosition.x <= cameraMinX) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(-1.0f, 1.0f, 1.0f));
+      newPosition.x = cameraMinX;
+    }
+    if (newPosition.x >= cameraMaxX) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(-1.0f, 1.0f, 1.0f));
+      newPosition.x = cameraMaxX;
+    }
+    if (newPosition.y <= cameraMinY) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, -1.0f, 1.0f));
+      newPosition.y = cameraMinY;
+    }
+    if (newPosition.y >= cameraMaxY) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, -1.0f, 1.0f));
+      newPosition.y = cameraMaxY;
+    }
+    if (newPosition.z <= cameraMinZ) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, 1.0f, -1.0f));
+      newPosition.z = cameraMinZ;
+    }
+    if (newPosition.z >= cameraMaxZ) {
+      sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, 1.0f, -1.0f));
+      newPosition.z = cameraMaxZ;
+    }
+    sphere.setPosition(newPosition);
+
+    /*** Rendering commands here ***/
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 lightProjection, lightView;
     glm::mat4 lightSpaceMatrix;
-    float near_plane = 1.0f, far_plane = 7.5f;
+    float near_plane = 0.1f, far_plane = 20.0f;
     lightProjection =
         glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
     lightView =
         glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 lightDirection = glm::normalize(glm::vec3(0.0f) - lightPos);
     lightSpaceMatrix = lightProjection * lightView;
     // render scene from light's pov
     simpleDepthShader.use();
@@ -192,8 +233,9 @@ int main() {
     glClear(GL_DEPTH_BUFFER_BIT);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, woodTexture);
-    renderScene(simpleDepthShader);
+    renderFloor(simpleDepthShader);
     sphere.Draw(simpleDepthShader);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     /* End shadow stuff */
 
@@ -215,23 +257,15 @@ int main() {
     shader.setVec3("viewPos", camera.getPosition());
     shader.setVec3("lightPos", lightPos);
     shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader.setVec3("lightDirection", lightDirection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, woodTexture);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-    renderScene(shader);
-    // shader.setBool("useTexture", false);
-    // shader.setVec3("color", glm::vec3(0.5f, 0.0f, 0.0f));
-    basicShader.use();
-    basicShader.setMat4("projection", projection);
-    basicShader.setMat4("view", view);
-    basicShader.setVec3("lightPos", lightPos);
-    basicShader.setVec3("lightColor", glm::vec3(1.0f));
-    basicShader.setBool("useTexture", false);
-    basicShader.setVec3("color", glm::vec3(0.5f, 0.0f, 0.0f));
-    basicShader.setInt("diffuse_texture1",
-                       0); // this might need to be set for shader to work
-    sphere.Draw(basicShader);
+    renderFloor(shader);
+    shader.setBool("useTexture", false);
+    shader.setVec3("color", glm::vec3(0.5f, 0.0f, 0.0f));
+    sphere.Draw(shader);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -263,13 +297,27 @@ void processInput(GLFWwindow *window) {
         glm::normalize(glm::cross(camera.getFront(), camera.getUp()));
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
     moveDirection += glm::vec3(0.0f, 1.0f, 0.0f);
-  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     moveDirection -= glm::vec3(0.0f, 1.0f, 0.0f);
+  }
 
   if (glm::length(moveDirection) != 0.0f) {
     moveDirection = glm::normalize(moveDirection);
   }
-  camera.setPosition(camera.getPosition() + (moveDirection * cameraSpeed));
+  glm::vec3 newPosition = camera.getPosition() + (moveDirection * cameraSpeed);
+  if (newPosition.x < cameraMinX)
+    newPosition.x = cameraMinX;
+  if (newPosition.x > cameraMaxX)
+    newPosition.x = cameraMaxX;
+  if (newPosition.y < cameraMinY + 0.3f)
+    newPosition.y = cameraMinY + 0.3f;
+  if (newPosition.y > cameraMaxY)
+    newPosition.y = cameraMaxY;
+  if (newPosition.z < cameraMinZ)
+    newPosition.z = cameraMinZ;
+  if (newPosition.z > cameraMaxZ)
+    newPosition.z = cameraMaxZ;
+  camera.setPosition(newPosition);
 
   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     camera.lookAt(worldObject.getPosition());
@@ -376,37 +424,12 @@ void renderQuad() {
   glBindVertexArray(0);
 }
 
-void renderScene(const Shader &shader) {
+void renderFloor(const Shader &shader) {
   // floor
   glm::mat4 model = glm::mat4(1.0f);
   shader.setMat4("model", model);
   glBindVertexArray(planeVAO);
   glDrawArrays(GL_TRIANGLES, 0, 6);
-  // cubes
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
-  model = glm::scale(model, glm::vec3(0.5f));
-  shader.setMat4("model", model);
-  renderCube();
-
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-  model = glm::scale(model, glm::vec3(0.5f));
-  shader.setMat4("model", model);
-  renderCube();
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-0.5f, 1.0f, -0.5f));
-  model = glm::scale(model, glm::vec3(0.5f));
-  shader.setMat4("model", model);
-  renderCube();
-
-  model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-  model = glm::rotate(model, glm::radians(60.0f),
-                      glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-  model = glm::scale(model, glm::vec3(0.25));
-  shader.setMat4("model", model);
-  renderCube();
 }
 
 // renderCube() renders a 1x1 3D cube in NDC.

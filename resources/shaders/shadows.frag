@@ -15,6 +15,7 @@ uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform vec3 color;
 uniform bool useTexture;
+uniform vec3 lightDirection;
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -30,7 +31,12 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
     // repeated code from main
     vec3 normal = normalize(fs_in.Normal);
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+
+    // this is for perspective light
+    //vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+
+    // this is for orthogonal light
+    vec3 lightDir = -lightDirection;
 
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     float shadow = 0.0;
@@ -54,8 +60,13 @@ void main()
     vec3 lightColor = vec3(0.3);
     // ambient
     vec3 ambient = 0.3 * lightColor;
+    
     // diffuse
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    // perspective
+    //vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    //ortho
+    vec3 lightDir = normalize(-lightDirection);
+
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * lightColor;
     // specular
