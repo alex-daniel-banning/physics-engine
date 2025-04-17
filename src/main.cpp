@@ -13,7 +13,6 @@
 #include "Camera.hpp"
 #include "Shader.hpp"
 #include "ProjectRoot.hpp"
-#include "model/Model.hpp"
 #include "model/WorldObject.hpp"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -34,20 +33,38 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 Camera camera = Camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
-WorldObject worldObject;
+float cameraMinX = -40.0f;
+float cameraMaxX = 40.0f;
+float cameraMinY = 0.0f;
+float cameraMaxY = 40.0f;
+float cameraMinZ = -40.0f;
+float cameraMaxZ = 40.0f;
 
 // meshes
-unsigned int planeVAO;
+float borderMinX = -15.0f;
+float borderMaxX = 15.0f;
+float borderMinY = 0.0f;
+float borderMaxY = 8.0f;
+float borderMinZ = -15.0f;
+float borderMaxZ = 15.0f;
+std::vector<glm::vec3> corners = {
+    {borderMinX, borderMinY, borderMinZ}, {borderMinX, borderMinY, borderMaxZ},
+    {borderMinX, borderMaxY, borderMinZ}, {borderMinX, borderMaxY, borderMaxZ},
+    {borderMaxX, borderMinY, borderMinZ}, {borderMaxX, borderMinY, borderMaxZ},
+    {borderMaxX, borderMaxY, borderMinZ}, {borderMaxX, borderMaxY, borderMaxZ}};
 
-float cameraMinX = -20.0f;
-float cameraMaxX = 20.0f;
-float cameraMinY = 0.0f;
-float cameraMaxY = 20.0f;
-float cameraMinZ = -20.0f;
-float cameraMaxZ = 20.0f;
+unsigned int planeVAO;
+float planeVertices[] = {
+    // positions            // normals         // texcoords
+    borderMinX, cameraMinY, borderMaxZ, 0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
+    borderMaxX, cameraMinY, borderMaxZ, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+    borderMinX, cameraMinY, borderMinZ, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+
+    borderMinX, cameraMinY, borderMinZ, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
+    borderMaxX, cameraMinY, borderMaxZ, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+    borderMaxX, cameraMinY, borderMinZ, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
 
 /* todo list
- * Add velocity to world objects
  * Add hitboxes to world objects
  *  - spheres
  *  - rectangles
@@ -88,30 +105,19 @@ int main() {
   glFrontFace(
       GL_CCW); // Counterclockwise (CCW) faces are considered front-facing
 
-  Shader lightSourceShader(
-      ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
-      ProjectRoot::getPath("/resources/shaders/light_source_shader.frag"));
+  camera.setPosition(glm::vec3(borderMaxX, borderMaxY / 2, borderMaxZ));
+  camera.lookAt(glm::vec3(0.0f, camera.getPosition().y, 0.0f));
+
   Shader simpleDepthShader(
       ProjectRoot::getPath("/resources/shaders/simple_depth_shader.vert"),
       ProjectRoot::getPath("/resources/shaders/simple_depth_shader.frag"));
-  Shader debugDepthQuad(
-      ProjectRoot::getPath("/resources/shaders/debug_depth_quad.vert"),
-      ProjectRoot::getPath("/resources/shaders/debug_depth_quad.frag"));
   Shader shader(ProjectRoot::getPath("/resources/shaders/shadows.vert"),
                 ProjectRoot::getPath("/resources/shaders/shadows.frag"));
   Shader basicShader(
       ProjectRoot::getPath("/resources/shaders/basic_shader.vert"),
       ProjectRoot::getPath("/resources/shaders/basic_shader.frag"));
 
-  float planeVertices[] = {
-      // positions            // normals         // texcoords
-      -25.0f, cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f,
-      25.0f,  cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      -25.0f, cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
-
-      -25.0f, cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f,  25.0f,
-      25.0f,  cameraMinY, 25.0f,  0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-      25.0f,  cameraMinY, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
+  // todo, replace with world object
   // plane VAO
   unsigned int planeVBO;
   glGenVertexArrays(1, &planeVAO);
@@ -160,17 +166,46 @@ int main() {
   shader.setBool("useTexture", true);
   shader.setInt("diffuseTexture", 0);
   shader.setInt("shadowMap", 1);
-  debugDepthQuad.use();
-  debugDepthQuad.setInt("depthMap", 0);
 
   WorldObject sphere(ProjectRoot::getPath(
       "/resources/models/smooth_sphere/smooth_sphere.obj"));
+  sphere.setScale(glm::vec3(0.5f));
   sphere.setPosition(glm::vec3(0.0f, 2.5f, 0.0f));
-  sphere.setVelocity(glm::vec3(0.0f, 5.0f, 0.0f));
+  sphere.setVelocity(glm::vec3(40.0f, 40.0f, 20.0f));
 
-  glm::vec3 lightPos = glm::vec3(-3.0f, 5.0f, -1.0f);
+  glm::vec3 lightPos = glm::vec3(borderMaxX, borderMaxY, borderMaxZ);
   WorldObject lightOrb(
       ProjectRoot::getPath("/resources/models/sphere/sphere.obj"));
+
+  glm::mat4 lightProjection, lightView;
+  glm::mat4 lightSpaceMatrix;
+  float near_plane = 0.1f,
+        far_plane = std::sqrt(std::pow(borderMaxX - borderMinX, 2) +
+                              std::pow(borderMaxY - borderMinY, 2) +
+                              std::pow(borderMaxZ - borderMinZ, 2));
+  lightView =
+      glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+  // transform world corners into light space
+  std::vector<glm::vec3> lightSpaceCorners;
+  for (glm::vec3 &corner : corners) {
+    glm::vec4 transformed = lightView * glm::vec4(corner, 1.0f);
+    lightSpaceCorners.push_back(glm::vec3(transformed));
+  }
+  // find min/max of lightspace
+  float x1 = std::numeric_limits<float>::max();
+  float x2 = std::numeric_limits<float>::lowest();
+  float y1 = std::numeric_limits<float>::max();
+  float y2 = std::numeric_limits<float>::lowest();
+  for (glm::vec3 &v : lightSpaceCorners) {
+    x1 = std::min(x1, v.x);
+    x2 = std::max(x2, v.x);
+    y1 = std::min(y1, v.y);
+    y2 = std::max(y2, v.y);
+  }
+
+  lightProjection = glm::ortho(x1, x2, y1, y2, near_plane, far_plane);
+  glm::vec3 lightDirection = glm::normalize(glm::vec3(0.0f) - lightPos);
+  lightSpaceMatrix = lightProjection * lightView;
 
   bool firstErr = false;
   while (!glfwWindowShouldClose(window)) {
@@ -185,29 +220,29 @@ int main() {
     /*** World tick ***/
     glm::vec3 newPosition =
         sphere.getPosition() + (deltaTime * sphere.getVelocity());
-    if (newPosition.x <= cameraMinX) {
+    if (newPosition.x <= borderMinX) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(-1.0f, 1.0f, 1.0f));
-      newPosition.x = cameraMinX;
+      newPosition.x = borderMinX;
     }
-    if (newPosition.x >= cameraMaxX) {
+    if (newPosition.x >= borderMaxX) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(-1.0f, 1.0f, 1.0f));
-      newPosition.x = cameraMaxX;
+      newPosition.x = borderMaxX;
     }
-    if (newPosition.y <= cameraMinY) {
+    if (newPosition.y <= borderMinY) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, -1.0f, 1.0f));
-      newPosition.y = cameraMinY;
+      newPosition.y = borderMinY;
     }
-    if (newPosition.y >= cameraMaxY) {
+    if (newPosition.y >= borderMaxY) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, -1.0f, 1.0f));
-      newPosition.y = cameraMaxY;
+      newPosition.y = borderMaxY;
     }
-    if (newPosition.z <= cameraMinZ) {
+    if (newPosition.z <= borderMinZ) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, 1.0f, -1.0f));
-      newPosition.z = cameraMinZ;
+      newPosition.z = borderMinZ;
     }
-    if (newPosition.z >= cameraMaxZ) {
+    if (newPosition.z >= borderMaxZ) {
       sphere.setVelocity(sphere.getVelocity() * glm::vec3(1.0f, 1.0f, -1.0f));
-      newPosition.z = cameraMaxZ;
+      newPosition.z = borderMaxZ;
     }
     sphere.setPosition(newPosition);
 
@@ -215,19 +250,9 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 lightProjection, lightView;
-    glm::mat4 lightSpaceMatrix;
-    float near_plane = 0.1f, far_plane = 20.0f;
-    lightProjection =
-        glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    lightView =
-        glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec3 lightDirection = glm::normalize(glm::vec3(0.0f) - lightPos);
-    lightSpaceMatrix = lightProjection * lightView;
-    // render scene from light's pov
+    /* Render shadows */
     simpleDepthShader.use();
     simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -235,15 +260,13 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, woodTexture);
     renderFloor(simpleDepthShader);
     sphere.Draw(simpleDepthShader);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    /* End shadow stuff */
 
     // reset viewport
     glViewport(0, 0, DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 2. render scene as normal using the generated depth/shadow map
+    /* Render scene */
     shader.use();
     shader.setBool("useTexture", true);
     glm::mat4 projection = glm::perspective(glm::radians(camera.getFov()),
@@ -253,7 +276,6 @@ int main() {
     glm::mat4 view = camera.getViewMatrix();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
-    // set light uniforms
     shader.setVec3("viewPos", camera.getPosition());
     shader.setVec3("lightPos", lightPos);
     shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
@@ -318,9 +340,6 @@ void processInput(GLFWwindow *window) {
   if (newPosition.z > cameraMaxZ)
     newPosition.z = cameraMaxZ;
   camera.setPosition(newPosition);
-
-  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    camera.lookAt(worldObject.getPosition());
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
